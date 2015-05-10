@@ -1,9 +1,7 @@
 package com.klangner.speechlab;
 
-import android.media.AudioRecord;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -11,25 +9,37 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
+
 
 public class MainActivity extends ActionBarActivity {
 
     private static final String TAG = "MainActivity";
     private static final int MESSAGE_POWER = 1;
 
-    private Handler handler;
+    /** Handler class for processing messages from outside of main thread */
+    private static class ActivityHandler extends Handler {
+        private final WeakReference<MainActivity> currentActivity;
+        public ActivityHandler(MainActivity activity){
+            currentActivity = new WeakReference<>(activity);
+        }
+
+        @Override
+        public void handleMessage(Message message){
+            currentActivity.get().handleMessage(message);
+        }
+    }
+
     private SignalPublisher signalPublisher = null;
+    private Handler handler;
+    private TextView powerView = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        final TextView powerView = (TextView)findViewById(R.id.powerView);
-        handler = new Handler(Looper.getMainLooper()) {
-            public void handleMessage(Message msg) {
-                powerView.setText(msg.obj.toString());
-            }
-        };
+        powerView = (TextView)findViewById(R.id.powerView);
+        handler = new ActivityHandler(this);
     }
 
     @Override
@@ -53,11 +63,8 @@ public class MainActivity extends ActionBarActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
+        return id == R.id.action_settings || super.onOptionsItemSelected(item);
 
-        return super.onOptionsItemSelected(item);
     }
 
     private void startRecording() {
@@ -75,5 +82,11 @@ public class MainActivity extends ActionBarActivity {
     private void stopRecording(){
         Log.v(TAG, "Stop recording");
         signalPublisher.stop();
+    }
+
+    private void handleMessage(Message msg) {
+        if(powerView != null) {
+            powerView.setText(msg.obj.toString());
+        }
     }
 }
