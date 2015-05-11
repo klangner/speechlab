@@ -9,6 +9,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
+import com.matrobot.signal.IPowerListener;
+import com.matrobot.signal.LogPowerFilter;
+import com.matrobot.signal.PowerFilter;
+import com.matrobot.signal.SignalSource;
+
 import java.lang.ref.WeakReference;
 
 
@@ -30,7 +35,7 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private SignalPublisher signalPublisher = null;
+    private SignalSource signalSource = null;
     private Handler handler;
     private TextView powerView = null;
 
@@ -68,20 +73,23 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void startRecording() {
-        signalPublisher = new SignalPublisher();
-        signalPublisher.addPowerSubscriber(new SignalPublisher.PowerSubscriber() {
-            public void onChanged(double power) {
+        signalSource = new SignalSource();
+        PowerFilter powerFilter = new PowerFilter(signalSource);
+        LogPowerFilter logPowerFilter = new LogPowerFilter(powerFilter);
+        logPowerFilter.addPowerSubscriber(new IPowerListener() {
+            @Override
+            public void onPowerValue(double power) {
                 Message msg = handler.obtainMessage(MESSAGE_POWER, power);
                 msg.sendToTarget();
             }
         });
-        Thread thread = new Thread(signalPublisher);
+        Thread thread = new Thread(signalSource);
         thread.start();
     }
 
     private void stopRecording(){
         Log.v(TAG, "Stop recording");
-        signalPublisher.stop();
+        signalSource.stop();
     }
 
     private void handleMessage(Message msg) {

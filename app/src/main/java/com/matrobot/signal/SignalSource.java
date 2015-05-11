@@ -1,9 +1,12 @@
-package com.klangner.speechlab;
+package com.matrobot.signal;
 
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Signal processing publisher.
@@ -11,38 +14,32 @@ import android.util.Log;
  * Allow subscribing to different audio features.
  * This class works in it own thread. You can't update UI in callback from this class.
  */
-public class SignalPublisher implements Runnable{
+public class SignalSource implements Runnable{
 
-    private static final String TAG = "SignalPublisher";
+    private static final String TAG = "SignalSource";
     private static final int SAMPLE_SIZE = 2048;
     private static final int RECORDER_SAMPLERATE = 44100;
     private static final int RECORDER_CHANNELS = AudioFormat.CHANNEL_IN_MONO;
     private static final int RECORDER_AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
 
-    public interface PowerSubscriber{
-        void onChanged(double power);
-    }
-
     private final AudioRecord recorder;
     private boolean isRunning = false;
-    private PowerSubscriber powerSubscriber = null;
+    private List<IRawAudioListener> listeners = new ArrayList<>();
 
-
-    public SignalPublisher(){
+    public SignalSource(){
         recorder = initAudioCapture();
     }
 
     @Override
     public void run() {
-        short[] sample = new short[SAMPLE_SIZE];
+        short[] data = new short[SAMPLE_SIZE];
         android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
         isRunning = true;
         recorder.startRecording();
         while (isRunning) {
-            recorder.read(sample, 0, SAMPLE_SIZE);
-            if(powerSubscriber != null){
-                double power = SignalPublisher.logPower(sample);
-                powerSubscriber.onChanged(power);
+            recorder.read(data, 0, SAMPLE_SIZE);
+            for(IRawAudioListener l : listeners){
+                l.onAudioData(RECORDER_SAMPLERATE, data);
             }
         }
         releaseAudioCapture();
@@ -52,8 +49,8 @@ public class SignalPublisher implements Runnable{
         isRunning = false;
     }
 
-    public void addPowerSubscriber(PowerSubscriber subscriber){
-        powerSubscriber = subscriber;
+    public void addListener(IRawAudioListener listener){
+        listeners.add(listener);
     }
 
     private AudioRecord initAudioCapture() {
@@ -69,20 +66,4 @@ public class SignalPublisher implements Runnable{
             recorder.release();
         }
     }
-
-    /** Signal power for the whole sample */
-    private static double power(short[] data){
-        double sum = 0;
-        for(short x: data) {
-            sum += Math.pow(x, 2);
-        }
-        return sum/(2*(data.length+1));
-    }
-
-
-    /** Signal power int logarithmic scale. */
-    private static double logPower(short[] data){
-        return Math.log10(power(data));
-    }
-
 }
