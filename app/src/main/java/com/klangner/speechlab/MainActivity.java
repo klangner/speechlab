@@ -9,8 +9,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
+import com.matrobot.signal.FourierFilter;
+import com.matrobot.signal.IPitchListener;
 import com.matrobot.signal.IPowerListener;
 import com.matrobot.signal.LogPowerFilter;
+import com.matrobot.signal.PitchFilter;
 import com.matrobot.signal.PowerFilter;
 import com.matrobot.signal.SignalSource;
 
@@ -21,6 +24,7 @@ public class MainActivity extends ActionBarActivity {
 
     private static final String TAG = "MainActivity";
     private static final int MESSAGE_POWER = 1;
+    private static final int MESSAGE_PITCH = 2;
 
     /** Handler class for processing messages from outside of main thread */
     private static class ActivityHandler extends Handler {
@@ -38,6 +42,7 @@ public class MainActivity extends ActionBarActivity {
     private SignalSource signalSource = null;
     private Handler handler;
     private TextView powerView = null;
+    private TextView pitchView = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +79,13 @@ public class MainActivity extends ActionBarActivity {
 
     private void startRecording() {
         signalSource = new SignalSource();
+        subscribeToPowerValuesStream();
+        subscribeToPitchValuesStream();
+        Thread thread = new Thread(signalSource);
+        thread.start();
+    }
+
+    private void subscribeToPowerValuesStream(){
         PowerFilter powerFilter = new PowerFilter(signalSource);
         LogPowerFilter logPowerFilter = new LogPowerFilter(powerFilter);
         logPowerFilter.addPowerSubscriber(new IPowerListener() {
@@ -83,8 +95,17 @@ public class MainActivity extends ActionBarActivity {
                 msg.sendToTarget();
             }
         });
-        Thread thread = new Thread(signalSource);
-        thread.start();
+    }
+
+    private void subscribeToPitchValuesStream(){
+        FourierFilter fftFilter = new FourierFilter(signalSource);
+        PitchFilter pitchFilter = new PitchFilter(fftFilter);
+        pitchFilter.addListener(new IPitchListener() {
+            public void onPitchValue(float pitch) {
+                Message msg = handler.obtainMessage(MESSAGE_PITCH, pitch);
+                msg.sendToTarget();
+            }
+        });
     }
 
     private void stopRecording(){
@@ -93,8 +114,11 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void handleMessage(Message msg) {
-        if(powerView != null) {
+        if(msg.what == MESSAGE_POWER && powerView != null) {
             powerView.setText(msg.obj.toString());
+        }
+        else if(msg.what == MESSAGE_PITCH && pitchView != null) {
+            pitchView.setText(msg.obj.toString());
         }
     }
 }

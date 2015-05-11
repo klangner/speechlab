@@ -18,7 +18,7 @@ public class FourierFilter implements IRawAudioListener {
     }
 
     /** Addd subscriber */
-    public void addPowerSubscriber(IFrequencyListener l){
+    public void addListener(IFrequencyListener l){
         listeners.add(l);
     }
 
