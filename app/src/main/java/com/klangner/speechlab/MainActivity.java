@@ -86,39 +86,36 @@ public class MainActivity extends ActionBarActivity {
     private void startRecording() {
         signalSource = new SignalSource();
         subscribeToPowerValuesStream();
-        subscribeToPitchValuesStream();
+//        subscribeToPitchValuesStream();
+        subscribeChart();
         Thread thread = new Thread(signalSource);
         thread.start();
     }
 
-    private void subscribeTimeDomain(){
+    private void subscribeChart(){
         final LineChart chart = (LineChart)findViewById(R.id.timeChart);
         signalSource.addListener(new IRawAudioListener() {
             public void onAudioData(int rate, short[] data) {
-                setData(chart, 100, 100);
-//                LineData dataset = new LineData(data, "DataSet 1");
-//                chart.setData(dataset);
+//                setData(chart, rate, data);
             }
         });
     }
 
-    private void setData(LineChart chart, int count, float range) {
-        ArrayList<String> xVals = new ArrayList<String>();
-        for (int i = 0; i < count; i++) {
+    private void setData(LineChart chart, int rate, short[] data) {
+        ArrayList<String> xVals = new ArrayList<>();
+        for (int i = 0; i < data.length; i++) {
             xVals.add((i) + "");
         }
-        ArrayList<Entry> yVals = new ArrayList<Entry>();
-        for (int i = 0; i < count; i++) {
-            float mult = (range + 1);
-            float val = (float) (Math.random() * mult) + 3;// + (float)
-            yVals.add(new Entry(val, i));
+        ArrayList<Entry> yVals = new ArrayList<>();
+        for (int i = 0; i < data.length; i++) {
+            yVals.add(new Entry(data[i], i));
         }
 
-        LineDataSet set1 = new LineDataSet(yVals, "DataSet 1");
-        ArrayList<LineDataSet> dataSets = new ArrayList<LineDataSet>();
+        LineDataSet set1 = new LineDataSet(yVals, "Time domain");
+        ArrayList<LineDataSet> dataSets = new ArrayList<>();
         dataSets.add(set1); // add the datasets
-        LineData data = new LineData(xVals, dataSets);
-        chart.setData(data);
+        LineData lineData = new LineData(xVals, dataSets);
+        chart.setData(lineData);
     }
 
     private void subscribeToPowerValuesStream(){
@@ -150,7 +147,9 @@ public class MainActivity extends ActionBarActivity {
 
     private void handleMessage(Message msg) {
         if(msg.what == MESSAGE_POWER && powerView != null) {
-            powerView.setText(msg.obj.toString());
+            Double value = (Double) msg.obj;
+            int a = (int) (value*10);
+            powerView.setText(Integer.toString(a));
         }
         else if(msg.what == MESSAGE_PITCH && pitchView != null) {
             pitchView.setText(msg.obj.toString());
