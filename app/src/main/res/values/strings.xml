@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">SpeechLab</string>
     <string name="power">Power</string>
+    <string name="pitch">Pitch</string>
+    <string name="freeze">Freeze</string>
     <string name="action_settings">Settings</string>
 </resources>

@@ -9,15 +9,21 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
 import com.matrobot.signal.FourierFilter;
 import com.matrobot.signal.IPitchListener;
 import com.matrobot.signal.IPowerListener;
+import com.matrobot.signal.IRawAudioListener;
 import com.matrobot.signal.LogPowerFilter;
 import com.matrobot.signal.PitchFilter;
 import com.matrobot.signal.PowerFilter;
 import com.matrobot.signal.SignalSource;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -85,6 +91,36 @@ public class MainActivity extends ActionBarActivity {
         thread.start();
     }
 
+    private void subscribeTimeDomain(){
+        final LineChart chart = (LineChart)findViewById(R.id.timeChart);
+        signalSource.addListener(new IRawAudioListener() {
+            public void onAudioData(int rate, short[] data) {
+                setData(chart, 100, 100);
+//                LineData dataset = new LineData(data, "DataSet 1");
+//                chart.setData(dataset);
+            }
+        });
+    }
+
+    private void setData(LineChart chart, int count, float range) {
+        ArrayList<String> xVals = new ArrayList<String>();
+        for (int i = 0; i < count; i++) {
+            xVals.add((i) + "");
+        }
+        ArrayList<Entry> yVals = new ArrayList<Entry>();
+        for (int i = 0; i < count; i++) {
+            float mult = (range + 1);
+            float val = (float) (Math.random() * mult) + 3;// + (float)
+            yVals.add(new Entry(val, i));
+        }
+
+        LineDataSet set1 = new LineDataSet(yVals, "DataSet 1");
+        ArrayList<LineDataSet> dataSets = new ArrayList<LineDataSet>();
+        dataSets.add(set1); // add the datasets
+        LineData data = new LineData(xVals, dataSets);
+        chart.setData(data);
+    }
+
     private void subscribeToPowerValuesStream(){
         PowerFilter powerFilter = new PowerFilter(signalSource);
         LogPowerFilter logPowerFilter = new LogPowerFilter(powerFilter);
@@ -96,7 +132,6 @@ public class MainActivity extends ActionBarActivity {
             }
         });
     }
-
     private void subscribeToPitchValuesStream(){
         FourierFilter fftFilter = new FourierFilter(signalSource);
         PitchFilter pitchFilter = new PitchFilter(fftFilter);

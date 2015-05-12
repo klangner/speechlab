@@ -22,4 +22,9 @@
         android:layout_toRightOf="@+id/powerLabel"
         android:layout_toEndOf="@+id/powerLabel" />
 
+    <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/timeChart"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
 </RelativeLayout>
